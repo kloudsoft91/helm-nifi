@@ -23,7 +23,5 @@
 .idea/
 *.tmproj
 
-.circleci/
-
 doc/
 .github/

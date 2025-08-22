@@ -39,7 +39,3 @@ spec:
                 - curl -s http://localhost:8080 | grep 'If you are not redirected automatically, follow this'
             failureThreshold: 30
             periodSeconds: 10
-#        - name: netshoot
-#          command: [ 'tail', '-f', '/dev/null' ]
-#          image: docker.io/nicolaka/netshoot:latest
-#          imagePullPolicy: "Always"

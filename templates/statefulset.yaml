@@ -142,6 +142,7 @@ spec:
           cat "${NIFI_HOME}/conf/authorizers.temp" > "${NIFI_HOME}/conf/authorizers.xml"
           cat "${NIFI_HOME}/conf/login-identity-providers-ldap.xml" > "${NIFI_HOME}/conf/login-identity-providers.xml"
 {{- else if .Values.auth.oidc.enabled }}
+          cat "${NIFI_HOME}/conf/authorizers.temp" > "${NIFI_HOME}/conf/authorizers.xml"
           prop_replace nifi.security.user.login.identity.provider ''
           prop_replace nifi.security.user.authorizer managed-authorizer
           prop_replace nifi.security.user.oidc.discovery.url {{ .Values.auth.oidc.discoveryUrl }}
@@ -149,7 +150,7 @@ spec:
           prop_replace nifi.security.user.oidc.client.secret {{ .Values.auth.oidc.clientSecret }}
           prop_replace nifi.security.user.oidc.claim.identifying.user {{ .Values.auth.oidc.claimIdentifyingUser }}
           xmlstarlet ed --inplace --delete "//authorizers/authorizer[identifier='single-user-authorizer']" "${NIFI_HOME}/conf/authorizers.xml"
-          xmlstarlet ed --inplace --update "//authorizers/userGroupProvider/property[@name='Users File']" -v './auth-conf/users.xml' "${NIFI_HOME}/conf/authorizers.xml"
+          # xmlstarlet ed --inplace --update "//authorizers/userGroupProvider/property[@name='Users File']" -v './conf/users.xml' "${NIFI_HOME}/conf/authorizers.xml"
           xmlstarlet ed --inplace --delete "//authorizers/userGroupProvider/property[@name='Initial User Identity 1']" "${NIFI_HOME}/conf/authorizers.xml"
           xmlstarlet ed --inplace \
                         --subnode "authorizers/userGroupProvider" --type 'elem' -n 'property' \
@@ -158,7 +159,7 @@ spec:
                           --value "Initial User Identity {{ .Values.replicaCount }}" \
                         "${NIFI_HOME}/conf/authorizers.xml"
           xmlstarlet ed --inplace --update "//authorizers/accessPolicyProvider/property[@name='Initial Admin Identity']" -v {{ .Values.auth.oidc.admin | quote }} "${NIFI_HOME}/conf/authorizers.xml"
-          xmlstarlet ed --inplace --update "//authorizers/accessPolicyProvider/property[@name='Authorizations File']" -v './auth-conf/authorizations.xml' "${NIFI_HOME}/conf/authorizers.xml"
+          # xmlstarlet ed --inplace --update "//authorizers/accessPolicyProvider/property[@name='Authorizations File']" -v './conf/authorizations.xml' "${NIFI_HOME}/conf/authorizers.xml"
           {{- if .Values.properties.isNode }}
                       xmlstarlet ed --inplace --delete "authorizers/accessPolicyProvider/property[@name='Node Identity 1']" "${NIFI_HOME}/conf/authorizers.xml"
             {{ range untilStep 0 (int .Values.replicaCount) 1 }}
@@ -184,10 +185,10 @@ spec:
 {{- end }}
 
 {{ if .Values.customFlow }}
-          gzip < {{ .Values.customFlow }} > /opt/nifi/data/flow.xml.gz
+          gzip < {{ .Values.customFlow }} > /opt/nifi/data/flow.json.gz
 {{ else }}
-          if ! test -f /opt/nifi/data/flow.xml.gz && test -f /opt/nifi/data/flow.xml; then
-            gzip /opt/nifi/data/flow.xml
+          if ! test -f /opt/nifi/data/flow.json.gz && test -f /opt/nifi/data/flow.json; then
+            gzip /opt/nifi/data/flow.json
           fi
 {{ end }}
 
@@ -209,15 +210,15 @@ spec:
 {{ range untilStep 0 (int .Values.replicaCount) 1 }}
           xmlstarlet ed --inplace \
                         --subnode "authorizers/accessPolicyProvider" --type 'elem' -n 'property' \
-                          --value "CN={{ template "apache-nifi.fullname" $ }}-{{ . }}.{{ template "apache-nifi.fullname" $ }}-headless.{{ $.Release.Namespace }}.svc.{{ $.Values.certManager.clusterDomain }}, OU=NIFI" \
+                        --value "CN={{ template "apache-nifi.fullname" $ }}-{{ . }}.{{ template "apache-nifi.fullname" $ }}-headless.{{ $.Release.Namespace }}.svc.{{ $.Values.certManager.clusterDomain }}, OU=NIFI" \
                         --insert "authorizers/accessPolicyProvider/property[not(@name)]" --type attr -n name \
-                          --value "Node Identity {{ . }}" \
+                        --value "Node Identity {{ . }}" \
                         "${NIFI_HOME}/conf/authorizers.xml"
           xmlstarlet ed --inplace \
                         --subnode "authorizers/userGroupProvider" --type 'elem' -n 'property' \
-                          --value "CN={{ template "apache-nifi.fullname" $ }}-{{ . }}.{{ template "apache-nifi.fullname" $ }}-headless.{{ $.Release.Namespace }}.svc.{{ $.Values.certManager.clusterDomain }}, OU=NIFI" \
+                        --value "CN={{ template "apache-nifi.fullname" $ }}-{{ . }}.{{ template "apache-nifi.fullname" $ }}-headless.{{ $.Release.Namespace }}.svc.{{ $.Values.certManager.clusterDomain }}, OU=NIFI" \
                         --insert "authorizers/userGroupProvider/property[not(@name)]" --type attr -n name \
-                          --value "Initial User Identity {{ . }}" \
+                        --value "Initial User Identity {{ . }}" \
                         "${NIFI_HOME}/conf/authorizers.xml"
 {{/* range untilStep 0 (int .Values.replicaCount ) 1 */}}{{ end }}
 
@@ -249,21 +250,6 @@ spec:
             echo "${NIFI_HOME}/tls/keystore.jks" is not readable!  Waiting for cert-manager sidecar to populate it.
             sleep 2
           done
-
-{{- /* if .Values.certManager.enabled */}}{{ else }}
-
-          if [ ! -r "${NIFI_HOME}/conf/nifi-cert.pem" ]
-          then
-            /opt/nifi/nifi-toolkit-current/bin/tls-toolkit.sh standalone \
-              -n '{{.Release.Name}}-nifi-0.{{.Release.Name}}-nifi-headless.{{.Release.Namespace}}.svc.cluster.local' \
-              -C '{{.Values.auth.admin}}' \
-              -o "${NIFI_HOME}/conf/" \
-              -P {{.Values.auth.SSL.truststorePasswd}} \
-              -S {{.Values.auth.SSL.keystorePasswd}} \
-              --nifiPropertiesFile /opt/nifi/nifi-current/conf/nifi.properties
-          fi
-
-{{- /* if .Values.certManager.enabled */}}{{ end }}
 
 {{- if .Values.properties.safetyValve }}
   {{- range $prop, $val := .Values.properties.safetyValve }}
@@ -525,8 +511,8 @@ spec:
             mountPath: /opt/nifi/nifi-current/conf/zookeeper.properties
             subPath: "zookeeper.properties"
           - name: "flow-content"
-            mountPath: /opt/nifi/data/flow.xml
-            subPath: "flow.xml"
+            mountPath: /opt/nifi/data/flow.json
+            subPath: "flow.json"
           {{- range $secret := .Values.secrets }}
             {{- if $secret.mountPath }}
               {{- if $secret.keys }}
@@ -796,8 +782,8 @@ spec:
         configMap:
           name: {{ template "apache-nifi.fullname" . }}-config
           items:
-            - key: "flow.xml"
-              path: "flow.xml"
+            - key: "flow.json"
+              path: "flow.json"
 {{- if .Values.certManager.enabled }}
       - name: secret-reader-token
         secret:

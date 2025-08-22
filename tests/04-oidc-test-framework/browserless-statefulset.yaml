@@ -25,7 +25,3 @@ spec:
           env:
           - name: CONNECTION_TIMEOUT
             value: "-1"
- #       - name: netshoot
- #         command: [ 'tail', '-f', '/dev/null' ]
- #         image: docker.io/nicolaka/netshoot:latest
- #         imagePullPolicy: "Always"

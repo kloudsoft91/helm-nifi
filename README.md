@@ -1,20 +1,12 @@
 # Helm Chart for Apache NiFi
 
-[![CircleCI](https://circleci.com/gh/cetic/helm-nifi.svg?style=svg)](https://circleci.com/gh/cetic/helm-nifi/tree/master) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) ![version](https://img.shields.io/github/tag/cetic/helm-nifi.svg?label=release) ![test](https://github.com/cetic/helm-nifi/actions/workflows/test.yml/badge.svg)
-
-## $${\color{red}Maintainers \space Wanted}$$
-
-$${\color{red}This \space project \space is \space not \space maintained \space anymore.}$$
-
-If you are interested in maintaining a fork of this project, please chime in in the [dedicated issue](https://github.com/cetic/helm-nifi/issues/330).
-
 ## Introduction
 
-This [Helm](https://helm.sh/) chart installs [Apache NiFi](https://nifi.apache.org/) 1.23.2 in a [Kubernetes](https://kubernetes.io/) cluster.
+This [Helm](https://helm.sh/) chart is forked from [cetic/helm-nifi](https://github.com/cetic/helm-nifi) installs [Apache NiFi](https://nifi.apache.org/) 2.5.0 (currently the latest) in a [Kubernetes](https://kubernetes.io/) cluster.
 
 ## Prerequisites
 
-- Kubernetes cluster 1.10+
+- Kubernetes cluster 1.30+
 - Helm 3.0.0+
 - [Persistent Volumes (PV)](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) provisioner support in the underlying infrastructure.
 
